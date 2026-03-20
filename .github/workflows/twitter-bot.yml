@@ -1,0 +1,52 @@
+name: Twitter Bot
+
+on:
+  schedule:
+    # 上午10点发送（UTC时间，北京时间18:00）
+    - cron: '0 0 * * *'
+    # 下午4点发送（UTC时间，北京时间00:00）
+    - cron: '0 8 * * *'
+
+  # 允许手动触发（用于测试）
+  workflow_dispatch:
+
+jobs:
+  send-tweet:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 安装依赖
+        run: |
+          pip install tweepy gspread oauth2client APScheduler requests python-dotenv Pillow
+
+      - name: 创建环境变量文件
+        env:
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
+          GOOGLE_SPREADSHEET_ID: ${{ secrets.GOOGLE_SPREADSHEET_ID }}
+        run: |
+          echo "TWITTER_API_KEY=$TWITTER_API_KEY" > .env
+          echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> .env
+          echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> .env
+          echo "TWITTER_ACCESS_TOKEN_SECRET=$TWITTER_ACCESS_TOKEN_SECRET" >> .env
+          echo "GOOGLE_SPREADSHEET_ID=$GOOGLE_SPREADSHEET_ID" >> .env
+          echo "GOOGLE_CREDENTIALS_FILE=credentials.json" >> .env
+
+      - name: 创建Google凭证文件
+        env:
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+        run: |
+          echo "$GOOGLE_CREDENTIALS_JSON" > credentials.json
+
+      - name: 运行发送程序
+        run: python send_post.py
